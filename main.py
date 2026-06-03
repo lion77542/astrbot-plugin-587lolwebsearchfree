@@ -28,8 +28,8 @@ class SearchPlugin(Star):
                 return await resp.json()
 
     @filter.command("搜")
-    async def cmd_search(self, event: AstrMessageEvent):
-        query = event.message_str.replace("/搜", "").strip()
+    async def cmd_search(self, message: AstrMessageEvent):
+        query = message.message_str.replace("/搜", "").strip()
         if not query:
             return CommandResult().message(Plain(text="用法：/搜 关键词"))
 
@@ -51,8 +51,8 @@ class SearchPlugin(Star):
             return CommandResult().message(Plain(text=f"搜索出错：{str(e)}"))
 
     @filter.command("搜图")
-    async def cmd_search_image(self, event: AstrMessageEvent):
-        query = event.message_str.replace("/搜图", "").strip()
+    async def cmd_search_image(self, message: AstrMessageEvent):
+        query = message.message_str.replace("/搜图", "").strip()
         if not query:
             return CommandResult().message(Plain(text="用法：/搜图 关键词"))
 
@@ -73,7 +73,7 @@ class SearchPlugin(Star):
             return CommandResult().message(Plain(text=f"图片搜索出错：{str(e)}"))
 
     @filter.command("搜索状态")
-    async def cmd_search_status(self, event: AstrMessageEvent):
+    async def cmd_search_status(self, message: AstrMessageEvent):
         try:
             url = f"{SEARCH_API}/health"
             data = await self._fetch(url)
