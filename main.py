@@ -1,11 +1,61 @@
 import asyncio
+import time
+import socket
+from collections import OrderedDict
 import aiohttp
 from astrbot.api.all import AstrMessageEvent, CommandResult, Context, Image, Plain
 import astrbot.api.event.filter as filter
 from astrbot.api.star import register, Star
 
-# 搜索 API 地址
+# ========== 配置 ==========
 SEARCH_API = "http://chat.587.lol:11190"
+CACHE_SIZE = 30
+CACHE_TTL = 300  # 5分钟
+CONNECT_TIMEOUT = 3
+READ_TIMEOUT = 8
+MAX_TITLE_LEN = 50
+MAX_CONTENT_LEN = 100
+MAX_RESULTS = 5
+
+# ========== DNS预解析 ==========
+# 指定域名IP，避免每次DNS查询
+DNS_CACHE = {"chat.587.lol": "151.242.85.89"}
+
+def _patch_dns():
+    """预解析DNS，加速连接"""
+    orig_getaddrinfo = socket.getaddrinfo
+    def patched_getaddrinfo(host, port, *args, **kwargs):
+        if host in DNS_CACHE:
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (DNS_CACHE[host], port))]
+        return orig_getaddrinfo(host, port, *args, **kwargs)
+    socket.getaddrinfo = patched_getaddrinfo
+
+_patch_dns()
+
+
+class LRUCache:
+    """内存LRU缓存"""
+    def __init__(self, maxsize=CACHE_SIZE, ttl=CACHE_TTL):
+        self.maxsize = maxsize
+        self.ttl = ttl
+        self._data = OrderedDict()
+    
+    def get(self, key):
+        if key in self._data:
+            val, ts = self._data[key]
+            if time.time() - ts < self.ttl:
+                self._data.move_to_end(key)
+                return val
+            del self._data[key]
+        return None
+    
+    def set(self, key, val):
+        if len(self._data) >= self.maxsize:
+            self._data.popitem(last=False)
+        self._data[key] = (val, time.time())
+    
+    def size(self):
+        return len(self._data)
 
 
 @register("astrbot_plugin_search", "lin", "联网搜索插件 - 支持文本搜索和图片搜索", "1.0.0", "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree")
@@ -13,16 +63,51 @@ class SearchPlugin(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)
         self.api_base = SEARCH_API
+        self._session = None
+        self._cache = LRUCache()
+        # 预热连接
+        asyncio.create_task(self._warmup())
+    
+    async def _get_session(self):
+        """复用连接池，保持长连接"""
+        if self._session is None or self._session.closed:
+            connector = aiohttp.TCPConnector(
+                limit=10,           # 最大连接数
+                limit_per_host=5,   # 单主机最大连接
+                ttl_dns_cache=300,  # DNS缓存5分钟
+                keepalive_timeout=30, # 保活30秒
+                force_close=False,   # 不强制关闭
+            )
+            self._session = aiohttp.ClientSession(
+                connector=connector,
+                timeout=aiohttp.ClientTimeout(
+                    total=READ_TIMEOUT,
+                    connect=CONNECT_TIMEOUT
+                )
+            )
+        return self._session
+    
+    async def _warmup(self):
+        """启动时预热连接"""
+        try:
+            session = await self._get_session()
+            async with session.get(f"{self.api_base}/health") as resp:
+                pass
+        except:
+            pass
     
     async def _request(self, endpoint: str, params: dict) -> dict:
-        """发起HTTP请求"""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{self.api_base}{endpoint}", 
-                params=params, 
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as resp:
-                return await resp.json()
+        """发起HTTP请求（带缓存）"""
+        cache_key = f"{endpoint}:{json.dumps(params, sort_keys=True)}"
+        cached = self._cache.get(cache_key)
+        if cached:
+            return cached
+        
+        session = await self._get_session()
+        async with session.get(f"{self.api_base}{endpoint}", params=params) as resp:
+            data = await resp.json()
+            self._cache.set(cache_key, data)
+            return data
     
     @filter.command("搜")
     async def cmd_search(self, event: AstrMessageEvent):
@@ -34,17 +119,17 @@ class SearchPlugin(Star):
         query = " ".join(args)
         
         try:
-            data = await self._request("/search", {"q": query, "engine": "all", "num": 5})
+            data = await self._request("/search", {"q": query, "engine": "all", "num": MAX_RESULTS})
             results = data.get("results", [])
             
             if not results:
                 return CommandResult().error(f"没有找到「{query}」的结果喵～")
             
             msg = f"🔍 搜索「{query}」共 {data.get('number_of_results', 0)} 条结果：\n\n"
-            for i, r in enumerate(results[:5], 1):
+            for i, r in enumerate(results[:MAX_RESULTS], 1):
                 title = r.get("title", "无标题")
                 url = r.get("url", "")
-                snippet = r.get("content", "")[:100]
+                snippet = r.get("content", "")[:MAX_CONTENT_LEN]
                 msg += f"【{i}】{title}\n"
                 if snippet:
                     msg += f"    {snippet}\n"
