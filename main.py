@@ -99,47 +99,51 @@ class SearchPlugin(Star):
     
     @filter.command("搜")
     async def cmd_search(self, event: AstrMessageEvent):
-        args = event.get_args()
-        if not args:
-            return CommandResult().error("用法：/搜 关键词\n例如：/搜 AI新闻")
+        """文本搜索"""
+        # 获取用户消息，去掉命令前缀
+        msg = event.message_str.replace("/搜", "").strip()
+        if not msg:
+            return CommandResult().message(Plain("用法：/搜 关键词\n例如：/搜 AI新闻"))
         
-        query = " ".join(args)
+        query = msg
         
         try:
             data = await self._request("/search", {"q": query, "engine": "all", "num": MAX_RESULTS})
             results = data.get("results", [])
             
             if not results:
-                return CommandResult().error(f"没有找到「{query}」的结果喵～")
+                return CommandResult().message(Plain(f"没有找到「{query}」的结果喵～"))
             
-            msg = f"🔍 搜索「{query}」共 {data.get('number_of_results', 0)} 条结果：\n\n"
+            msg_text = f"🔍 搜索「{query}」共 {data.get('number_of_results', 0)} 条结果：\n\n"
             for i, r in enumerate(results[:MAX_RESULTS], 1):
                 title = r.get("title", "无标题")
                 url = r.get("url", "")
                 snippet = r.get("content", "")[:MAX_CONTENT_LEN]
-                msg += f"【{i}】{title}\n"
+                msg_text += f"【{i}】{title}\n"
                 if snippet:
-                    msg += f"    {snippet}\n"
-                msg += f"    🔗 {url}\n\n"
+                    msg_text += f"    {snippet}\n"
+                msg_text += f"    🔗 {url}\n\n"
             
-            return CommandResult().message(Plain(msg))
+            return CommandResult().message(Plain(msg_text))
+            
         except Exception as e:
-            return CommandResult().error(f"搜索出错了：{str(e)}")
+            return CommandResult().message(Plain(f"搜索出错了：{str(e)}"))
     
     @filter.command("搜图")
     async def cmd_search_image(self, event: AstrMessageEvent):
-        args = event.get_args()
-        if not args:
-            return CommandResult().error("用法：/搜图 关键词\n例如：/搜图 猫咪")
+        """图片搜索"""
+        msg = event.message_str.replace("/搜图", "").strip()
+        if not msg:
+            return CommandResult().message(Plain("用法：/搜图 关键词\n例如：/搜图 猫咪"))
         
-        query = " ".join(args)
+        query = msg
         
         try:
             data = await self._request("/images", {"q": query, "num": 3})
             results = data.get("results", [])
             
             if not results:
-                return CommandResult().error(f"没有找到「{query}」的图片喵～")
+                return CommandResult().message(Plain(f"没有找到「{query}」的图片喵～"))
             
             messages = [Plain(f"🖼️ 搜索「{query}」找到 {len(results)} 张图片：\n")]
             for i, img in enumerate(results[:3], 1):
@@ -149,14 +153,16 @@ class SearchPlugin(Star):
                     messages.append(Image.fromURL(url))
             
             return CommandResult().message(*messages)
+            
         except Exception as e:
-            return CommandResult().error(f"图片搜索出错了：{str(e)}")
+            return CommandResult().message(Plain(f"图片搜索出错了：{str(e)}"))
     
     @filter.command("搜索状态")
     async def cmd_search_status(self, event: AstrMessageEvent):
+        """检查搜索服务状态"""
         try:
             data = await self._request("/health", {})
             cache_size = data.get("cache_size", 0)
             return CommandResult().message(Plain(f"✅ 搜索服务正常运行\n缓存大小: {cache_size}"))
         except Exception as e:
-            return CommandResult().error(f"❌ 搜索服务不可用：{str(e)}")
+            return CommandResult().message(Plain(f"❌ 搜索服务不可用：{str(e)}"))
