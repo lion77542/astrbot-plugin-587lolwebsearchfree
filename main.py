@@ -5,10 +5,10 @@ import astrbot.api.event.filter as filter
 from astrbot.api.star import register, Star
 
 # 搜索 API 地址
-SEARCH_API = "http://151.242.85.89:11191"
+SEARCH_API = "http://chat.587.lol:11190"
 
 
-@register("astrbot_plugin_search", "lin", "联网搜索插件 - 支持文本搜索和图片搜索", "1.0.0", "https://github.com")
+@register("astrbot_plugin_search", "lin", "联网搜索插件 - 支持文本搜索和图片搜索", "1.0.0", "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree")
 class SearchPlugin(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)
