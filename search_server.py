@@ -402,6 +402,52 @@ async def search_ddg(q: str, num: int) -> List[Dict[str, str]]:
         circuit_breaker.record_failure('ddg')
         return []
 
+async def search_quark(q: str, num: int) -> List[Dict[str, str]]:
+    """夸克搜索 - 轻量版"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        }
+        
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(10.0, connect=5.0, read=10.0, write=3.0, pool=5.0),
+            follow_redirects=True,
+            verify=False,
+        ) as client:
+            r = await client.get(
+                'https://quark.sm.cn/s',
+                params={'q': q, 'safemode': '1'},
+                headers=headers
+            )
+            
+            results = []
+            seen_urls: set = set()
+            
+            # 夸克搜索结果的简单提取
+            pattern = r'<a[^>]*href="(https?://[^"]+)"[^>]*>(.*?)</a>'
+            for m in re.finditer(pattern, r.text, re.DOTALL | re.IGNORECASE):
+                url = m.group(1)
+                title = re.sub(r'<[^>]+>', '', m.group(2)).strip()
+                import html
+                title = html.unescape(title)[:Config.MAX_TITLE_LEN]
+                
+                if title and len(title) > 5 and url not in seen_urls:
+                    seen_urls.add(url)
+                    results.append({
+                        'title': title[:50],
+                        'url': url,
+                        'content': title[:100],
+                    })
+                
+                if len(results) >= num:
+                    break
+            
+            return results
+    except Exception as e:
+        return []
+
 async def search_images(q: str, num: int) -> List[Dict[str, str]]:
     """图片搜索 - 极致优化"""
     try:
@@ -553,15 +599,16 @@ async def crawl_page_content(url: str, max_chars: int = Config.MAX_CRAWL_CHARS) 
 async def do_search(q: str, eng: str, num: int) -> List[Dict[str, str]]:
     """执行搜索 - 智能路由"""
     if eng == 'all':
-        # 并发搜索 + 熔断检查
+        # 并发搜索 + 熔断检查 + 夸克
         tasks = []
         if circuit_breaker.is_available('bing'):
             tasks.append(search_bing(q, num))
         if circuit_breaker.is_available('ddg'):
             tasks.append(search_ddg(q, num))
+        # 夸克搜索引擎（轻量，不熔断）
+        tasks.append(search_quark(q, num))
         
         if not tasks:
-            # 所有引擎都熔断了，等待一段时间后重试
             await asyncio.sleep(Config.RETRY_DELAY)
             if circuit_breaker.is_available('bing'):
                 tasks.append(search_bing(q, num))
@@ -573,21 +620,28 @@ async def do_search(q: str, eng: str, num: int) -> List[Dict[str, str]]:
         
         results_list = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # 合并结果
+        # 交叉验证合并结果
         all_results = []
+        url_sources = {}  # 记录每个URL来自哪些搜索引擎
+        
         for results in results_list:
             if isinstance(results, list):
-                all_results.extend(results)
+                for item in results:
+                    url = item.get('url', '')
+                    if url:
+                        if url not in url_sources:
+                            url_sources[url] = []
+                            all_results.append(item)
+                        url_sources[url].append('quark' if 'search_quark' in str(results) else 'bing/ddg')
         
-        # 去重（基于 URL）
-        seen = set()
-        unique_results = []
-        for item in all_results:
-            if item.get('url') and item['url'] not in seen:
-                seen.add(item['url'])
-                unique_results.append(item)
+        # 交叉验证排序：被多个搜索引擎同时收录的结果优先
+        def cross_validate(item):
+            url = item.get('url', '')
+            return len(url_sources.get(url, []))  # 来源数越多越优先
         
-        return unique_results[:num]
+        all_results.sort(key=cross_validate, reverse=True)
+        
+        return all_results[:num]
     
     elif eng == 'bing':
         return await search_bing(q, num)

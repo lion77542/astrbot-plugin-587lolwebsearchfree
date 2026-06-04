@@ -1,7 +1,6 @@
 """
-AstrBot 联网搜索插件 - 中文保证版
-强制只搜索中文网站，确保100%中文内容
-作者：小银耳（基于 MiMo 大模型优化）
+AstrBot 联网搜索插件 587websearchfree
+作者：小银耳（基于DEEPSEEKV4大模型优化）
 """
 
 import asyncio
@@ -204,7 +203,7 @@ class QueryOptimizer:
 @register(
     "astrbot_plugin_587lolwebsearchfree", 
     "lin", 
-    "联网搜索插件 - 中文保证版", 
+    "联网搜索插件 - 中文", 
     "3.2.0", 
     "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree"
 )
@@ -261,13 +260,18 @@ class SearchPlugin(Star):
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
+                        if not isinstance(data, dict):
+                            if attempt == MAX_RETRIES - 1:
+                                return None
+                            await asyncio.sleep(1)
+                            continue
                         self.cache.set(cache_key, data)
                         return data
                     else:
                         if attempt == MAX_RETRIES - 1:
                             return None
                         await asyncio.sleep(1)
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            except (aiohttp.ClientError, asyncio.TimeoutError, Exception) as e:
                 if attempt == MAX_RETRIES - 1:
                     return None
                 await asyncio.sleep(1)
@@ -285,6 +289,8 @@ class SearchPlugin(Star):
         text = f"🔍 搜索「{query}」找到 {len(results)} 条结果：\n\n"
         
         for i, r in enumerate(results, 1):
+            if not r:
+                continue
             title = str(r.get("title", ""))[:60]
             url_r = str(r.get("url", ""))
             snippet = str(r.get("content", ""))[:120]
@@ -310,6 +316,8 @@ class SearchPlugin(Star):
         text = f"🖼️ 搜索「{query}」的图片：\n\n"
         
         for i, img in enumerate(results, 1):
+            if not img:
+                continue
             url_img = str(img.get("url", ""))
             if url_img:
                 text += f"{i}. {url_img}\n"
