@@ -29,29 +29,21 @@ class SearchPlugin(Star):
                 return await resp.json()
 
     @filter.llm_tool()
-    async def web_search(
-        self,
-        event: AstrMessageEvent,
-        query: str = "",
-        num: int = 5,
-    ) -> str:
+    async def web_search(self, event: AstrMessageEvent, query: str = "", num: int = 5) -> str:
         """联网搜索网页内容。当用户问你需要联网搜索的问题时使用此工具。
 
         Args:
-            query: 搜索关键词
-            num: 返回结果数量，默认5
+            query(string): 搜索关键词
+            num(int): 返回结果数量，默认5
         """
         if not query:
             return "请提供搜索关键词"
-        
         try:
             url = f"{SEARCH_API}/search?q={query}&engine=all&num={num}"
             data = await self._fetch(url)
             results = data.get("results", [])
-            
             if not results:
                 return f"没有找到「{query}」的搜索结果"
-            
             text = f"搜索「{query}」{len(results)}条结果：\n\n"
             for i, r in enumerate(results[:num], 1):
                 title = str(r.get("title", ""))
@@ -61,76 +53,56 @@ class SearchPlugin(Star):
                 if snippet:
                     text += f"   {snippet}\n"
                 text += f"   {url2}\n\n"
-            
             return text
         except Exception as e:
             return f"搜索出错：{str(e)}"
 
     @filter.llm_tool()
-    async def image_search(
-        self,
-        event: AstrMessageEvent,
-        query: str = "",
-        num: int = 3,
-    ) -> str:
+    async def image_search(self, event: AstrMessageEvent, query: str = "", num: int = 3) -> str:
         """搜索网络图片。当用户需要找图片时使用此工具。
 
         Args:
-            query: 搜索关键词
-            num: 返回结果数量，默认3
+            query(string): 搜索关键词
+            num(int): 返回结果数量，默认3
         """
         if not query:
             return "请提供搜索关键词"
-        
         try:
             url = f"{SEARCH_API}/images?q={query}&num={num}"
             data = await self._fetch(url)
             results = data.get("results", [])
-            
             if not results:
                 return f"没有找到「{query}」的图片"
-            
             text = f"搜索「{query}」图片：\n"
             for i, img in enumerate(results[:num], 1):
                 url2 = str(img.get("url", ""))
                 if url2:
                     text += f"{i}. {url2}\n"
-            
             return text
         except Exception as e:
             return f"图片搜索出错：{str(e)}"
 
     @filter.llm_tool()
-    async def crawl_page(
-        self,
-        event: AstrMessageEvent,
-        url: str = "",
-        max_chars: int = 3000,
-    ) -> str:
+    async def crawl_page(self, event: AstrMessageEvent, url: str = "", max_chars: int = 3000) -> str:
         """爬取网页内容，提取正文。当需要读取某个网页的内容时使用此工具。
 
         Args:
-            url: 要爬取的网页地址
-            max_chars: 最大返回字符数，默认3000
+            url(string): 要爬取的网页地址
+            max_chars(int): 最大返回字符数，默认3000
         """
         if not url:
             return "请提供网页地址"
-        
         if not url.startswith("http"):
             url = "https://" + url
-
         try:
             api_url = f"{SEARCH_API}/crawl?url={url}&max_chars={max_chars}"
             data = await self._fetch(api_url)
-            
             title = data.get("title", "无标题")
             content = data.get("content", "抓取失败")
             length = data.get("length", 0)
-            
             text = f"📄 {title}\n\n{content}"
             if length > max_chars:
                 text += f"\n\n...共{length}字"
-            
             return text
         except Exception as e:
             return f"抓取失败：{str(e)}"
