@@ -1,6 +1,6 @@
 name: astrbot_plugin_587lolwebsearchfree
-version: 3.2.0
-description: 联网搜索插件 - 必应中文增强版（智能搜索优化、中文内容保证、极致性能）
+version: 3.3.1
+description: 联网搜索插件 - 必应中文增强版（多引擎交叉验证、中文内容保证、UA轮换、极致性能）
 author: lin
 homepage: https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree
 icon: https://raw.githubusercontent.com/lion77542/astrbot-plugin-587lolwebsearchfree/main/icon.png
