@@ -1,0 +1,19 @@
+name: astrbot_plugin_587lolwebsearchfree
+version: 1.0.0
+description: 联网搜索插件 - sou.587.lol 公益搜索（轻量优化版，专为低配服务器设计）
+author: lin
+homepage: https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree
+icon: https://raw.githubusercontent.com/lion77542/astrbot-plugin-587lolwebsearchfree/main/icon.png
+
+# 插件配置（可选）
+config:
+  # 搜索 API 地址
+  search_api: "http://chat.587.lol:11191"
+  # 缓存大小（条目数）
+  cache_size: 20
+  # 缓存生存时间（秒）
+  cache_ttl: 300
+  # 请求超时时间（秒）
+  timeout: 12
+  # 失败重试次数
+  max_retries: 2
