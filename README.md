@@ -1,6 +1,4 @@
-# AstrBot 联网搜索插件 - 必应中文增强版 🚀
-
-> **专为中文用户打造的高性能联网搜索插件，基于必应中国搜索引擎，确保100%中文内容！**
+# AstrBot 联网搜索插件 - 中文增强版 🚀
 
 ---
 
@@ -289,6 +287,6 @@ class Config:
 
 ---
 
-**作者**：小银耳（基于 MiMo 大模型优化）  
+**作者**：lin的agent：小银耳（基于deepseekv4优化）
 **最后更新**：2026-06-04  
 **项目地址**：https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree
