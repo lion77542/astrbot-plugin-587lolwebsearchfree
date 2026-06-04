@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import socket
+from typing import Optional
 from astrbot.api.all import AstrMessageEvent, CommandResult, Context, Image, Plain
 import astrbot.api.event.filter as filter
 from astrbot.api.star import register, Star
@@ -27,8 +28,13 @@ class SearchPlugin(Star):
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                 return await resp.json()
 
-    @filter.llm_tool(name="web_search")
-    async def web_search(self, event: AstrMessageEvent, query: str = "", num: int = 5) -> str:
+    @filter.llm_tool()
+    async def web_search(
+        self,
+        event: AstrMessageEvent,
+        query: str = "",
+        num: int = 5,
+    ) -> str:
         """联网搜索网页内容。当用户问你需要联网搜索的问题时使用此工具。
 
         Args:
@@ -60,8 +66,13 @@ class SearchPlugin(Star):
         except Exception as e:
             return f"搜索出错：{str(e)}"
 
-    @filter.llm_tool(name="image_search")
-    async def image_search(self, event: AstrMessageEvent, query: str = "", num: int = 3) -> str:
+    @filter.llm_tool()
+    async def image_search(
+        self,
+        event: AstrMessageEvent,
+        query: str = "",
+        num: int = 3,
+    ) -> str:
         """搜索网络图片。当用户需要找图片时使用此工具。
 
         Args:
@@ -89,8 +100,13 @@ class SearchPlugin(Star):
         except Exception as e:
             return f"图片搜索出错：{str(e)}"
 
-    @filter.llm_tool(name="crawl_page")
-    async def crawl_page(self, event: AstrMessageEvent, url: str = "", max_chars: int = 3000) -> str:
+    @filter.llm_tool()
+    async def crawl_page(
+        self,
+        event: AstrMessageEvent,
+        url: str = "",
+        max_chars: int = 3000,
+    ) -> str:
         """爬取网页内容，提取正文。当需要读取某个网页的内容时使用此工具。
 
         Args:
