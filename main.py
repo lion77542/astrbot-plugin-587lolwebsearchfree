@@ -18,7 +18,7 @@ def _patch_dns():
     socket.getaddrinfo = patched
 _patch_dns()
 
-@register("astrbot-plugin-587lolwebsearchfree", "lin", "联网搜索插件 - sou.587.lol 公益搜索", "0.0.1beta", "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree")
+@register("astrbot_plugin_587lolwebsearchfree", "lin", "联网搜索插件 - sou.587.lol 公益搜索", "0.0.1beta", "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree")
 class SearchPlugin(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)
