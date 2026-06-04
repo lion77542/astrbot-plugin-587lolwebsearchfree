@@ -59,7 +59,7 @@ https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree
 ## 📊 服务信息
 
 - **官网**: http://sou.587.lol
-- **API**: http://sou.587.lol:11191
+- **API**: http://chat.587.lol:11191
 - **状态**: 公益免费
 
 ---
