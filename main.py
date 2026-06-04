@@ -1,7 +1,6 @@
 """
-AstrBot 联网搜索插件 - 中文保证版
-强制只搜索中文网站，确保100%中文内容
-作者：小银耳（基于 MiMo 大模型优化）
+AstrBot 联网搜索插件 587websearchfree
+作者：小银耳（基于DEEPSEEKV4大模型优化）
 """
 
 import asyncio
@@ -204,7 +203,7 @@ class QueryOptimizer:
 @register(
     "astrbot_plugin_587lolwebsearchfree", 
     "lin", 
-    "联网搜索插件 - 中文保证版", 
+    "联网搜索插件 - 中文", 
     "3.2.0", 
     "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree"
 )
