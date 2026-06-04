@@ -5,8 +5,8 @@ from astrbot.api.all import AstrMessageEvent, CommandResult, Context, Image, Pla
 import astrbot.api.event.filter as filter
 from astrbot.api.star import register, Star
 
-SEARCH_API = "http://sou.587.lol:11191"
-DNS_CACHE = {"sou.587.lol": "151.242.85.89"}
+SEARCH_API = "http://chat.587.lol:11191"
+DNS_CACHE = {"chat.587.lol": "151.242.85.89"}
 
 def _patch_dns():
     orig = socket.getaddrinfo
@@ -17,7 +17,7 @@ def _patch_dns():
     socket.getaddrinfo = patched
 _patch_dns()
 
-@register("astrbot-plugin-587lolwebsearchfree", "lin", "联网搜索插件", "0.0.1beta", "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree")
+@register("astrbot_plugin_search", "lin", "联网搜索插件", "0.0.1beta", "https://github.com/lion77542/astrbot-plugin-587lolwebsearchfree")
 class SearchPlugin(Star):
     def __init__(self, context: Context) -> None:
         super().__init__(context)
@@ -31,14 +31,14 @@ class SearchPlugin(Star):
     async def cmd_search(self, message: AstrMessageEvent):
         query = message.message_str.replace("/搜", "").strip()
         if not query:
-            return CommandResult().message(Plain(text="用法：/搜 关键词"))
+            return CommandResult().error("用法：/搜 关键词")
 
         try:
             url = f"{SEARCH_API}/search?q={query}&engine=all&num=5"
             data = await self._fetch(url)
             results = data.get("results", [])
             if not results:
-                return CommandResult().message(Plain(text=f"没有找到「{query}」的结果"))
+                return CommandResult().error(f"没有找到「{query}」的结果")
 
             text = f"搜索「{query}」{len(results)}条结果：\n\n"
             for i, r in enumerate(results[:5], 1):
@@ -46,37 +46,38 @@ class SearchPlugin(Star):
                 url2 = str(r.get("url", ""))
                 text += f"{i}. {title}\n{url2}\n\n"
 
-            return CommandResult().message(Plain(text=str(text)))
+            return CommandResult().message(text)
         except Exception as e:
-            return CommandResult().message(Plain(text=f"搜索出错：{str(e)}"))
+            return CommandResult().error(f"搜索出错：{str(e)}")
 
     @filter.command("搜图")
     async def cmd_search_image(self, message: AstrMessageEvent):
         query = message.message_str.replace("/搜图", "").strip()
         if not query:
-            return CommandResult().message(Plain(text="用法：/搜图 关键词"))
+            return CommandResult().error("用法：/搜图 关键词")
 
         try:
             url = f"{SEARCH_API}/images?q={query}&num=3"
             data = await self._fetch(url)
             results = data.get("results", [])
             if not results:
-                return CommandResult().message(Plain(text=f"没有找到「{query}」的图片"))
+                return CommandResult().error(f"没有找到「{query}」的图片")
 
-            msgs = [Plain(text=str(f"搜索「{query}」图片："))]
-            for img in results[:3]:
+            text = f"搜索「{query}」图片：\n"
+            for i, img in enumerate(results[:3], 1):
                 url2 = str(img.get("url", ""))
                 if url2:
-                    msgs.append(Image.fromURL(url2))
-            return CommandResult().message(*msgs)
+                    text += f"{i}. {url2}\n"
+
+            return CommandResult().message(text)
         except Exception as e:
-            return CommandResult().message(Plain(text=f"图片搜索出错：{str(e)}"))
+            return CommandResult().error(f"图片搜索出错：{str(e)}")
 
     @filter.command("搜索状态")
     async def cmd_search_status(self, message: AstrMessageEvent):
         try:
             url = f"{SEARCH_API}/health"
             data = await self._fetch(url)
-            return CommandResult().message(Plain(text="搜索服务正常"))
+            return CommandResult().message("搜索服务正常")
         except Exception as e:
-            return CommandResult().message(Plain(text=f"搜索服务不可用：{str(e)}"))
+            return CommandResult().error(f"搜索服务不可用：{str(e)}")
